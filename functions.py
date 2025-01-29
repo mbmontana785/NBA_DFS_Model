@@ -170,11 +170,12 @@ def update_game_stats(api_key, game_ids):
     st.success(f"Database updated with {rows_added} rows added from {games_processed} games.")
 
 
-# Function to check for missing values
+# Function to check for missing values and save the entire DataFrame only if missing values exist
 def check_missing_values(df):
     """
-    Check for missing values in a DataFrame. 
-    If missing values are found, display a summary and rows with missing data.
+    Check for missing values in a DataFrame.
+    If missing values are found, display a summary, save the entire DataFrame as a CSV,
+    and provide an option to replace missing values with 0 if they are in numeric columns.
     """
     missing_summary = df.isna().sum()  # Count missing values per column
     columns_with_missing = missing_summary[missing_summary > 0]  # Filter columns with missing values
@@ -185,6 +186,11 @@ def check_missing_values(df):
         # Display summary of missing values
         st.subheader("Missing Values Summary")
         st.write(columns_with_missing)
+
+        # Save the entire DataFrame if missing values exist
+        missing_values_file = "full_dataframe_with_missing_values.csv"
+        df.to_csv(missing_values_file, index=False)
+        st.success(f"Full DataFrame saved as {missing_values_file} for further inspection.")
 
         # Get the columns that contain missing values
         missing_cols = columns_with_missing.index.tolist()
@@ -202,10 +208,11 @@ def check_missing_values(df):
                 return check_missing_values(df)
         else:
             st.info("Some missing values are in non-numeric columns. Handle manually.")
-    
-    else:
-        # Do nothing if there are no missing values
-        return
+
+    # If no missing values, do nothing and let the program continue silently
+    return
+
+
 
 def fetch_player_salaries(api_key, today, site, positions):
     """
@@ -265,3 +272,24 @@ def populate_position_columns(today_df, positions, site):
         today_df['UTIL'] = True
 
     return today_df
+
+def update_main_df(main_df_sorted, today_df):
+    """
+    Concatenates today's data with the existing dataset, sorts by player_id, date, and game_id,
+    and returns the updated DataFrame.
+    """
+    updated_df = pd.concat([main_df_sorted, today_df], ignore_index=True)
+    updated_df = updated_df.sort_values(['player_id', 'date', 'game_id']).reset_index(drop=True)
+    return updated_df
+
+def calculate_rolling_averages(df, num_cols):
+    """
+    Computes the rolling mean of numerical columns over the last 15 games for each player.
+    The shift(1) ensures that the current game is not included in the calculation.
+    """
+    df[num_cols] = (
+        df.groupby('player_id')[num_cols]
+        .apply(lambda x: x.shift(1).rolling(window=15, min_periods=1).mean())
+        .reset_index(drop=True)
+    )
+    return df
