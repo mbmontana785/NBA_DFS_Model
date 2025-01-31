@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 import sqlite3
 import requests
 import streamlit as st
@@ -293,3 +294,67 @@ def calculate_rolling_averages(df, num_cols):
         .reset_index(drop=True)
     )
     return df
+
+
+import streamlit as st
+import pandas as pd
+import requests
+
+def fetch_injury_report(player_ids, api_key):
+    """
+    Fetches injury reports for players in the given player_ids list.
+    
+    Parameters:
+    - player_ids (list): List of player IDs from the slate
+    - api_key (str): API key for the request
+
+    Returns:
+    - injury_df (pd.DataFrame): DataFrame containing injury reports
+    """
+    col_heads = ['name', 'player_id', 'injury', 'inj_date', 'status', 'return_date', 'last_game']
+    rows = []
+
+    headers = {
+        "x-rapidapi-key": api_key,
+        "x-rapidapi-host": "tank01-fantasy-stats.p.rapidapi.com"
+    }
+
+    with st.spinner("Fetching injury reports..."):  # Add Streamlit spinner for loading
+        for player_id in player_ids:
+            url = f"https://tank01-fantasy-stats.p.rapidapi.com/getNBAPlayerInfo?playerID={player_id}&statsToGet=averages"
+
+            try:
+                response = requests.get(url, headers=headers, timeout=5)  # Add timeout to avoid hanging
+                response.raise_for_status()  # Raise HTTP errors
+                result = response.json()
+
+                # Validate response structure
+                if 'body' in result and result['body']:
+                    injury_info = result['body'].get('injury', {})
+
+                    # Check if injury details exist
+                    if any(value != '' for value in injury_info.values()):
+                        rows.append([
+                            result['body'].get('longName', 'Unknown'),
+                            result['body'].get('playerID', 'Unknown'),
+                            injury_info.get('description', 'N/A'),
+                            injury_info.get('injDate', 'N/A'),
+                            injury_info.get('designation', 'N/A'),
+                            injury_info.get('injReturnDate', 'N/A'),
+                            result['body'].get('lastGamePlayed', 'N/A')
+                        ])
+            except requests.exceptions.RequestException as e:
+                st.error(f"Error fetching data for player {player_id}: {e}")
+            except KeyError:
+                st.warning(f"Unexpected response format for player {player_id}. Skipping...")
+
+    # Convert to DataFrame and display in Streamlit
+    injury_df = pd.DataFrame(rows, columns=col_heads)
+
+    if not injury_df.empty:
+        st.subheader("🔴 Players with Injuries")
+        st.dataframe(injury_df)  # Display in Streamlit
+    else:
+        st.success("✅ No injuries reported!")
+
+    return injury_df  # Return the dataframe for further processing

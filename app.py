@@ -3,6 +3,7 @@ import sqlite3
 import requests
 from datetime import datetime, timedelta
 import streamlit as st
+import matplotlib.pyplot as plt
 from functions import (set_yesterday_only, 
 fetch_game_ids, 
 get_row_count, 
@@ -11,7 +12,8 @@ check_missing_values,
 fetch_player_salaries, 
 populate_position_columns, 
 update_main_df,
-calculate_rolling_averages)
+calculate_rolling_averages,
+fetch_injury_report)
 
 #Initalizing the dataframe that will hold the features for today's data points
 today_df = pd.DataFrame(columns=["pos", "salary", "longName", "player_id", "team_id", "team", "game_id"])
@@ -28,6 +30,7 @@ st.title(f"NBA DFS Model and Lineup Generator for {formatted_date}")
 
 # API key for fetching data
 api_key = "3103a75392msh7bce7c32fde122cp134393jsn4d42ed6d08a8"
+api_host = "tank01-fantasy-stats.p.rapidapi.com"
 
 # Determine yesterday_only status
 yesterday_only = set_yesterday_only(yesterday, last_day)
@@ -267,3 +270,122 @@ st.dataframe(main_df_sorted.head())
 st.subheader("Last 5 Rows of Today's Data")
 st.dataframe(main_df_sorted.tail())
 
+# Uploading slate file from computer
+uploaded_file = st.file_uploader(f"Upload the {st.session_state.site} Player List", type=["csv"])
+
+if uploaded_file is not None:
+    slate_df = pd.read_csv(uploaded_file)  # Read the uploaded file
+    if st.session_state.site == 'DraftKings':
+        slate_df.rename(columns = {'TeamAbbrev': 'Team'}, inplace = True)
+        
+    st.success("Player list uploaded successfully!")
+    st.dataframe(slate_df.head())  # Display the first few rows for confirmation
+
+    # Making a set of the list of all teams playing today
+    teams_playing = set(list(main_df_sorted['team']))
+    # st.write("Teams playing tonight")
+    # st.write(sorted(list(teams_playing)))
+
+    # Making a set of the list of all teams in the slate we're playing
+    teams_in_slate = set(list(slate_df['Team']))
+    # st.write("Teams in tonight's slate")
+    # st.write(sorted(list(teams_in_slate)))
+
+    # Getting a set of the teams playing tonight who don't appear in the slate
+    # We hope to use this to also catch team abbreviations from FD and DK that don't match the API
+    # We can add code to change the unmatched names
+    teams_not_in_slate = teams_playing.difference(teams_in_slate)
+    st.write("Teams playing tonight that aren't in slate:")
+    st.write(sorted(list(teams_not_in_slate)))
+
+    # Filter `main_df_sorted` to only include teams in the slate
+    main_df_sorted = main_df_sorted[main_df_sorted['team'].isin(teams_in_slate)]
+
+else:
+    st.warning("Please upload the player list CSV.")
+
+#EDA
+st.subheader("Summary Statistics of main_df_sorted")
+st.dataframe(main_df_sorted.describe().T)  
+
+# Generate histograms for each numeric column in a 3-column grid layout
+st.subheader("Histograms of Features")
+
+num_features = main_df_sorted.select_dtypes(include=['number']).columns
+num_cols = 3  # Number of columns in the grid
+rows = -(-len(num_features) // num_cols)  # Ceiling division to get the number of rows
+
+for i in range(0, len(num_features), num_cols):
+    cols = st.columns(num_cols)  # Create a row with 3 columns
+    for j in range(num_cols):
+        if i + j < len(num_features):  # Ensure we don't go out of bounds
+            col_name = num_features[i + j]
+            fig, ax = plt.subplots()
+            ax.hist(main_df_sorted[col_name].dropna(), bins=30, edgecolor='black')
+
+            # Set title and labels with larger font sizes
+            ax.set_title(f"{col_name}", fontsize=14, fontweight='bold')  # Increased font size
+            ax.set_xlabel(col_name, fontsize=12)  # Bigger x-axis label
+            ax.set_ylabel("Frequency", fontsize=12)  # Bigger y-axis label
+
+            cols[j].pyplot(fig)  # Display the histogram in the corresponding column
+
+# Extract player_ids from main_df_sorted
+slate_ids = main_df_sorted['player_id'].tolist()
+
+# Initialize injury_df in session state if it doesn't exist
+# if 'injury_df' not in st.session_state:
+#     st.session_state.injury_df = pd.DataFrame()
+
+# # Button to refresh the injury report
+# if st.button("Fetch Latest Injury Report"):
+#     st.session_state.injury_df = fetch_injury_report(slate_ids, api_key)
+
+# # Display injury report only if it contains data
+# if not st.session_state.injury_df.empty:
+#     st.subheader("Injury Report")
+#     st.dataframe(st.session_state.injury_df)
+# else:
+#     st.info("No injury data available.")
+
+# Get three random teams from the dataset
+random_teams = main_df_sorted['team'].dropna().unique()
+if len(random_teams) >= 3:
+    selected_teams = np.random.choice(random_teams, 3, replace=False)
+else:
+    selected_teams = random_teams  # If there are fewer than 3 teams, just use all available teams
+
+# Filter main_df_sorted for these teams
+filtered_df = main_df_sorted[main_df_sorted['team'].isin(selected_teams)]
+
+# Display the filtered DataFrame
+st.subheader("Displaying data for three random teams")
+st.dataframe(filtered_df)
+
+
+
+#Removing players who are out from main_df_sorted
+# Let the user select players to remove
+players_to_remove = st.multiselect(
+    "Select players to remove from lineup consideration:", 
+    main_df_sorted['longName'].unique()
+)
+
+# Step 2: Create a separate DataFrame for removed players
+if players_to_remove:
+    if st.button("Remove Selected Players"):
+        removed_players_df = main_df_sorted[main_df_sorted['longName'].isin(players_to_remove)]
+        main_df_sorted = main_df_sorted[~main_df_sorted['longName'].isin(players_to_remove)]
+
+        st.success(f"Removed {len(players_to_remove)} players from lineup consideration.")
+        
+        # Display the removed players
+        st.subheader("Removed Players Data")
+        st.dataframe(removed_players_df)
+
+st.write(len(main_df))
+
+#Next we change variables of players with injured teammates to reflect increased opportunity
+#We'll group players by team and position. 
+#All teammates at that player's position will have proportion of the injured player's mins_proj and mins_share added.
+#If a player plays two positions, every player at each position will get a share of the 
