@@ -18,18 +18,19 @@ def set_yesterday_only(yesterday, last_day):
 
         for row in results:
             if row[0][:8] == yesterday:
-                return None  # Already up-to-date.
+                return None, None  # Already up-to-date.
             elif row[0][:8] == last_day:
-                return True  # Only yesterday's data is missing.
+                return True, last_day  # Only yesterday's data is missing.
             else:
-                return False  # Data older than yesterday is also missing.
+                last_day = row[0][:8]
+                return False, last_day  # Data older than yesterday is also missing.
     except sqlite3.Error as e:
         st.error(f"Database error: {e}")
         return None
     finally:
         conn.close()
 
-def fetch_game_ids(api_key, date=None, yesterday=None, last_day=None, today=None, yesterday_only=None):
+def fetch_game_ids(api_key, today=None, last_day=None, yesterday=None, yesterday_only=None):
     """
     Fetch game IDs for a specific date, a date range, or based on yesterday_only logic.
     """
@@ -41,23 +42,23 @@ def fetch_game_ids(api_key, date=None, yesterday=None, last_day=None, today=None
     }
 
     # Fetch game IDs for a single specific date (e.g., today)
-    if date:
-        url = f"https://tank01-fantasy-stats.p.rapidapi.com/getNBAGamesForDate?gameDate={date}"
-        try:
-            response = requests.get(url, headers=headers)
-            response.raise_for_status()
-            result = response.json()
+    # if yesterday_only == True:
+    #     url = f"https://tank01-fantasy-stats.p.rapidapi.com/getNBAGamesForDate?gameDate={date}"
+    #     try:
+    #         response = requests.get(url, headers=headers)
+    #         response.raise_for_status()
+    #         result = response.json()
 
-            if 'body' in result and result['body']:
-                for game in result['body']:
-                    game_ids.append(game['gameID'])
-            else:
-                no_game_dates.append(date)
-        except requests.exceptions.RequestException as e:
-            st.error(f"Error fetching data for {date}: {e}")
-        except KeyError:
-            st.error(f"Unexpected response format for {date}.")
-        return game_ids, no_game_dates
+    #         if 'body' in result and result['body']:
+    #             for game in result['body']:
+    #                 game_ids.append(game['gameID'])
+    #         else:
+    #             no_game_dates.append(date)
+    #     except requests.exceptions.RequestException as e:
+    #         st.error(f"Error fetching data for {date}: {e}")
+    #     except KeyError:
+    #         st.error(f"Unexpected response format for {date}.")
+    #     return game_ids, no_game_dates
 
     # Existing logic for yesterday_only or multi-day fetch
     if yesterday_only:
@@ -77,6 +78,7 @@ def fetch_game_ids(api_key, date=None, yesterday=None, last_day=None, today=None
             st.error(f"Error fetching data for {yesterday}: {e}")
         except KeyError:
             st.error(f"Unexpected response format for {yesterday}.")
+        return game_ids, no_game_dates
     elif yesterday_only == False:
         # Fetch game IDs for multiple days
         start_date = datetime.strptime(last_day, '%Y%m%d')
@@ -100,7 +102,24 @@ def fetch_game_ids(api_key, date=None, yesterday=None, last_day=None, today=None
                 st.error(f"Error fetching data for {current_date}: {e}")
             except KeyError:
                 st.error(f"Unexpected response format for {current_date}.")
-    return game_ids, no_game_dates
+    else:
+        # Fetch game IDs for today
+        url = f"https://tank01-fantasy-stats.p.rapidapi.com/getNBAGamesForDate?gameDate={today}"
+        try:
+            response = requests.get(url, headers=headers)
+            response.raise_for_status()
+            result = response.json()
+
+            if 'body' in result and result['body']:
+                for game in result['body']:
+                    game_ids.append(game['gameID'])
+            else:
+                no_game_dates.append(yesterday)
+        except requests.exceptions.RequestException as e:
+            st.error(f"Error fetching data for {yesterday}: {e}")
+        except KeyError:
+            st.error(f"Unexpected response format for {yesterday}.")
+        return game_ids, no_game_dates
 
 
 def get_row_count():
@@ -226,7 +245,7 @@ def fetch_player_salaries(api_key, today, site, positions):
     }
 
     players = []  # List to store player data
-    heads = ['pos', 'salary', 'longName', 'player_id', 'team_id', 'team']
+    heads = ['prim_pos', 'pos', 'salary', 'longName', 'player_id', 'team_id', 'team']
 
     try:
         response = requests.get(url, headers=headers)
@@ -236,6 +255,7 @@ def fetch_player_salaries(api_key, today, site, positions):
         if 'body' in result and site in result['body']:
             for player in result['body'][site]:
                 players.append([
+                    player['pos'],
                     player['allValidPositions'], player['salary'], player['longName'], 
                     player['playerID'], player['teamID'], player['team']
                 ])
@@ -294,67 +314,48 @@ def calculate_rolling_averages(df, num_cols):
         .reset_index(drop=True)
     )
     return df
+### AUTOMATICALLY FILTER OUT INJURED PLAYERS FROM API ###
 
-
-import streamlit as st
-import pandas as pd
-import requests
-
+# Function to fetch injury reports from the API
 def fetch_injury_report(player_ids, api_key):
-    """
-    Fetches injury reports for players in the given player_ids list.
-    
-    Parameters:
-    - player_ids (list): List of player IDs from the slate
-    - api_key (str): API key for the request
-
-    Returns:
-    - injury_df (pd.DataFrame): DataFrame containing injury reports
-    """
     col_heads = ['name', 'player_id', 'injury', 'inj_date', 'status', 'return_date', 'last_game']
     rows = []
+    
+    for player_id in player_ids:
+        url = f"https://tank01-fantasy-stats.p.rapidapi.com/getNBAPlayerInfo?playerID={player_id}"
+        
+        headers = {
+            "x-rapidapi-key": api_key,
+            "x-rapidapi-host": "tank01-fantasy-stats.p.rapidapi.com"
+        }
 
-    headers = {
-        "x-rapidapi-key": api_key,
-        "x-rapidapi-host": "tank01-fantasy-stats.p.rapidapi.com"
-    }
+        try:
+            response = requests.get(url, headers=headers)
+            response.raise_for_status()
+            result = response.json()
+            
+            if 'body' in result and result['body']:  # Ensure response contains valid data
+                injury_data = result['body'].get('injury', {})
+                if any(value != '' for value in injury_data.values()):  # Check if injury dict has data
+                    rows.append([
+                        result['body']['longName'],
+                        result['body']['playerID'],
+                        injury_data.get('description', ''),
+                        injury_data.get('injDate', ''),
+                        injury_data.get('designation', ''),
+                        injury_data.get('injReturnDate', ''),
+                        result['body'].get('lastGamePlayed', '')
+                    ])
+                    
+        except requests.exceptions.RequestException as e:
+            st.warning(f"Error fetching data for {player_id}: {e}")
 
-    with st.spinner("Fetching injury reports..."):  # Add Streamlit spinner for loading
-        for player_id in player_ids:
-            url = f"https://tank01-fantasy-stats.p.rapidapi.com/getNBAPlayerInfo?playerID={player_id}&statsToGet=averages"
+    return pd.DataFrame(rows, columns=col_heads)
 
-            try:
-                response = requests.get(url, headers=headers, timeout=5)  # Add timeout to avoid hanging
-                response.raise_for_status()  # Raise HTTP errors
-                result = response.json()
 
-                # Validate response structure
-                if 'body' in result and result['body']:
-                    injury_info = result['body'].get('injury', {})
-
-                    # Check if injury details exist
-                    if any(value != '' for value in injury_info.values()):
-                        rows.append([
-                            result['body'].get('longName', 'Unknown'),
-                            result['body'].get('playerID', 'Unknown'),
-                            injury_info.get('description', 'N/A'),
-                            injury_info.get('injDate', 'N/A'),
-                            injury_info.get('designation', 'N/A'),
-                            injury_info.get('injReturnDate', 'N/A'),
-                            result['body'].get('lastGamePlayed', 'N/A')
-                        ])
-            except requests.exceptions.RequestException as e:
-                st.error(f"Error fetching data for player {player_id}: {e}")
-            except KeyError:
-                st.warning(f"Unexpected response format for player {player_id}. Skipping...")
-
-    # Convert to DataFrame and display in Streamlit
-    injury_df = pd.DataFrame(rows, columns=col_heads)
-
-    if not injury_df.empty:
-        st.subheader("🔴 Players with Injuries")
-        st.dataframe(injury_df)  # Display in Streamlit
-    else:
-        st.success("✅ No injuries reported!")
-
-    return injury_df  # Return the dataframe for further processing
+def highlight_day_to_day(row):
+    """
+    Highlights rows where the injury status is 'Day-to-Day' by applying a background color.
+    """
+    color = 'background-color: yellow' if row["status"] == "Day-to-Day" else ''
+    return [color] * len(row)
