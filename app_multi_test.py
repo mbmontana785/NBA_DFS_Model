@@ -89,9 +89,18 @@ if "cap" not in st.session_state:
 if "all_lineups_df" not in st.session_state:
     st.session_state.all_lineups_df = pd.DataFrame()
 
-exclude_list = []
-lock_list = []
-exclude_teams = []
+if "exclude_list" not in st.session_state:
+    st.session_state.exclude_list = []
+
+if "lock_list" not in st.session_state:
+    st.session_state.lock_list = []
+
+if "exclude_teams" not in st.session_state:
+    st.session_state.exclude_teams = []
+
+# exclude_list = []
+# lock_list = []
+# exclude_teams = []
 
 
 # File uploader widget in Streamlit
@@ -161,18 +170,18 @@ if not st.session_state.main_df.empty:
 
 if not st.session_state.main_df.empty:
     # Select players to lock into the lineup
-    lock_list = st.multiselect("Select players to lock into the lineup:", df['longName'].unique())
+    st.session_state.lock_list = st.multiselect("Select players to lock into the lineup:", df['longName'].unique())
     
     # Select players to exclude from the lineup
-    exclude_list = st.multiselect("Select players to exclude from the lineup:", df['longName'].unique())
+    st.session_state.exclude_list = st.multiselect("Select players to exclude from the lineup:", df['longName'].unique())
     
     # Select teams to exclude from the lineup
-    exclude_teams = st.multiselect("Select teams to exclude from the lineup:", df['team'].unique())
+    st.session_state.exclude_teams = st.multiselect("Select teams to exclude from the lineup:", df['team'].unique())
 
 
-def generate_lineup(df, salary_cap, site, excluded_players=None, locked_players=None, excluded_teams=None, limit=None):
-    if excluded_players is None:
-        excluded_players = []
+def generate_lineup(df, salary_cap, site, locked_players=None, excluded_teams=None, limit=None):
+    # if excluded_players is None:
+    #     excluded_players = []
     if locked_players is None:
         locked_players = []
     if excluded_teams is None:
@@ -226,7 +235,7 @@ def generate_lineup(df, salary_cap, site, excluded_players=None, locked_players=
     
      # Exclude specific players and entire teams
     for i, row in df.iterrows():
-        if row['longName'] in excluded_players or row['team'] in excluded_teams:
+        if row['team'] in excluded_teams:
             prob += player_vars[i] == 0  # Prevent this player from being selected
     
     # Lock specific players into the lineup
@@ -364,7 +373,8 @@ if st.button('Generate Lineup'):
     point_limit = None
     if num_lineups == 1:
         #Run everything normally if we generate just one lineup
-        lineup, total_salary, total_pred_points = generate_lineup(df, cap, site, exclude_list, lock_list, exclude_teams, point_limit)
+        df = df[~df["longName"].isin(st.session_state.exclude_list)]
+        lineup, total_salary, total_pred_points = generate_lineup(df, cap, site, st.session_state.lock_list, st.session_state.exclude_teams, point_limit)
         
         st.markdown(create_subtitle(f"{('FanDuel' if st.session_state.site == 'FD' else 'DraftKings')} Lineup"), unsafe_allow_html=True)
         st.write(f"Total Salary Used: {total_salary}")
@@ -388,6 +398,7 @@ if st.button('Generate Lineup'):
             mime="text/csv",
         )
     else:
+        df = df[~df["longName"].isin(st.session_state.exclude_list)]
         for i in range(num_lineups):
             if not st.session_state.all_lineups_df.empty:
                 exposure_counts = st.session_state.all_lineups_df["player_id"].value_counts()
@@ -395,7 +406,7 @@ if st.button('Generate Lineup'):
                 df = df[~df["player_id"].isin(overexposed_players)]  # Remove overexposed players
             if i > 0:
                 point_limit = total_pred_points
-            lineup, total_salary, total_pred_points = generate_lineup(df, cap, site, exclude_list, lock_list, exclude_teams, point_limit)
+            lineup, total_salary, total_pred_points = generate_lineup(df, cap, site, st.session_state.lock_list, st.session_state.exclude_teams, point_limit)
             if st.session_state.site == 'FD':
                 lineup_df = pd.DataFrame(lineup, columns = ['PG', 'SG', 'SF', 'PF', 'C', 'player_id', 'Name', 'Team', 'Salary', 'FD_Pred', 'FD_Value'])
                 lineup_df['lineup_id'] = i
