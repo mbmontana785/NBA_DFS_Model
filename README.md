@@ -1,1 +1,8 @@
-# Predicting NBA daily fantasy points for FanDuel and DraftKings
+# FanDuel and DraftKings NBA DFS Model and Lineup Optimizer
+
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/b46f34b3-30bc-4d9a-ad35-201e3b2a9812" width="45%">
+  <img src="https://github.com/user-attachments/assets/58848afe-fa2b-44d0-b032-f37b214e4a46" width="45%">
+</p>
+
+
