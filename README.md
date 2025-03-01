@@ -1,6 +1,6 @@
 # FanDuel and DraftKings NBA DFS Model and Lineup Optimizer
 
-**Optimizer app in Streamlit with CSS adjusted depening on whether we're playing FanDuel or DraftKings:**
+**Optimizer app in Streamlit with CSS adjusted depending on whether we're playing FanDuel or DraftKings:**
 
 <p align="center">
   <img src="https://github.com/user-attachments/assets/b46f34b3-30bc-4d9a-ad35-201e3b2a9812" width="45%">
