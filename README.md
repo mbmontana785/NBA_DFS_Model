@@ -9,9 +9,8 @@
 
 
 ## XG Boost models
-FanDuel: RMSE = 9.682575858687576
+FanDuel: RMSE = 9.682575858687576<br>
 DraftKings: RMSE = 9.668348108287754
 
-![gradient_boost_feature_importances_FD](https://github.com/user-attachments/assets/6f78e48e-3843-4971-be50-5adf37d698fb)
 
 
