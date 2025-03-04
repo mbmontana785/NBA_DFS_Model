@@ -12,5 +12,8 @@
 FanDuel: RMSE = 9.682575858687576<br>
 DraftKings: RMSE = 9.668348108287754
 
+![Gradient Boost Feature Importances FD](gradient_boost_feature_importances_FD.png)
+
+
 
 
