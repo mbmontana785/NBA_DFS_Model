@@ -14,31 +14,31 @@
 FanDuel: 9.682575858687576<br>
 DraftKings: 9.668348108287754<br>
 
-**Live production RMSE (through March 3):**
-Fanduel: 11.751239556366068
-DraftKings: 12.205750130250914
+**Live production RMSE (through March 3):**<br>
+Fanduel: 11.751239556366068<br>
+DraftKings: 12.205750130250914<br>
 
-**Features:**
-(Rolling mean for the last 15 games)
-fga: field-goal attempts
-ast: assists
-tptfgm: 3-point field goals made
-fgm: field goals made
-fta: free throws attempted
-tptfga: 3-point field goals attempted
-OffReb: offensive rebounds
-ftm: free throws made
-blk: blocked shots
-DefReb: defensive rebounds
-PlusMinus: team's point differential when player is on the court
-stl: steals
-pts: points scored
-PF: personal fouls
-TOV: Turnovers
-usage: percentage of possessions in which player makes a shot attempt, makes free throw attempts or turns the ball over
-mins_share: Percentage of overall team minutes played by that player, scaled to 240 (5 * 48, 5 players on floor for 48 minutes).
-mins: Minutes played
-mins_proj: Projected minutes played.
+**Features:**<br>
+(Rolling mean for the last 15 games)<br>
+fga: field-goal attempts<br>
+ast: assists<br>
+tptfgm: 3-point field goals made<br>
+fgm: field goals made<br>
+fta: free throws attempted<br>
+tptfga: 3-point field goals attempted<br>
+OffReb: offensive rebounds<br>
+ftm: free throws made<br>
+blk: blocked shots<br>
+DefReb: defensive rebounds<br>
+PlusMinus: team's point differential when player is on the court<br>
+stl: steals<br>
+pts: points scored<br>
+PF: personal fouls<br>
+TOV: Turnovers<br>
+usage: percentage of possessions in which player makes a shot attempt, makes free throw attempts or turns the ball over<br>
+mins_share: Percentage of overall team minutes played by that player, scaled to 240 (5 * 48, 5 players on floor for 48 minutes).<br>
+mins: Minutes played<br>
+mins_proj: Projected minutes played<br>
 
 
 
