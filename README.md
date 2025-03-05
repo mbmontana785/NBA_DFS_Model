@@ -20,25 +20,25 @@ DraftKings: 12.205750130250914<br>
 
 **Features:**<br>
 (Rolling mean for the last 15 games)<br>
-fga: field-goal attempts<br>
-ast: assists<br>
-tptfgm: 3-point field goals made<br>
-fgm: field goals made<br>
-fta: free throws attempted<br>
-tptfga: 3-point field goals attempted<br>
-OffReb: offensive rebounds<br>
-ftm: free throws made<br>
-blk: blocked shots<br>
-DefReb: defensive rebounds<br>
-PlusMinus: team's point differential when player is on the court<br>
-stl: steals<br>
-pts: points scored<br>
-PF: personal fouls<br>
-TOV: Turnovers<br>
-usage: percentage of possessions in which player makes a shot attempt, makes free throw attempts or turns the ball over<br>
-mins_share: Percentage of overall team minutes played by that player, scaled to 240 (5 * 48, 5 players on floor for 48 minutes).<br>
-mins: Minutes played<br>
-mins_proj: Projected minutes played<br>
+**fga:** field-goal attempts<br>
+**ast:** assists<br>
+**tptfgm:** 3-point field goals made<br>
+**fgm:** field goals made<br>
+**fta:** free throws attempted<br>
+**tptfga:** 3-point field goals attempted<br>
+**OffReb:** offensive rebounds<br>
+**ftm:** free throws made<br>
+**blk:** blocked shots<br>
+**DefReb:** defensive rebounds<br>
+**PlusMinus:** team's point differential when player is on the court<br>
+**stl:** steals<br>
+**pts:** points scored<br>
+**PF:** personal fouls<br>
+**TOV:** Turnovers<br>
+**usage:** percentage of possessions in which player makes a shot attempt, makes free throw attempts or turns the ball over<br>
+**mins_share:** Percentage of overall team minutes played by that player, scaled to 240 (5 * 48, 5 players on floor for 48 minutes).<br>
+**mins:** Minutes played<br>
+**mins_proj:** Projected minutes played<br>
 
 
 
