@@ -40,6 +40,7 @@ DraftKings: 12.205750130250914<br>
 **17 mins:** Minutes played<br>
 **18 mins_proj:** Projected minutes played<br>
 
+![feature_importances](https://github.com/user-attachments/assets/9cdf44ee-c7b9-4d21-a843-6d40d0b333e0)
 
 
 
