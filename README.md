@@ -42,6 +42,13 @@ DraftKings: 12.205750130250914<br>
 
 ![feature_importances](https://github.com/user-attachments/assets/9cdf44ee-c7b9-4d21-a843-6d40d0b333e0)
 
+## Future Work
+
+There's a lot of future work. 
+
+
+
+![correlation_heatmap_FLEX](https://github.com/user-attachments/assets/ccf0ce7e-21ca-4545-ad37-d7736d15038d)
 
 
 
