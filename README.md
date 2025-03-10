@@ -44,9 +44,11 @@ DraftKings: 12.205750130250914<br>
 
 ## Future Work
 
-There's a lot of future work. 
+There's a lot of future work. The model has not translated to DFS success through the first month.
 
+The correlation heatmap is below. We left out all the DvP features, the pace features and the over-under features because of low correlation. Perhaps future iterations of the model should include these features.
 
+We might also want to have a separate model that predicts minutes played for each player. The features could be the predicted minutes for all the other players who have played for that team that season. If the player is no longer on the team, then his minutes would just be zero. We also could use a feature that indicates how many players are available for that team on that night.
 
 ![correlation_heatmap_FLEX](https://github.com/user-attachments/assets/ccf0ce7e-21ca-4545-ad37-d7736d15038d)
 
